@@ -1,4 +1,4 @@
-# XCAOpenAIClient 
+# OpenAIClient 
 
 ## Features
 - Generated from [OpenAI OpenAPI YAML](https://github.com/openai/openai-openapi/blob/master/openapi.yaml) using [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) plugin.
