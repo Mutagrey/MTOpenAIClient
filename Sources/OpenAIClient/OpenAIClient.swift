@@ -16,6 +16,58 @@ public struct OpenAIClient {
         self.apiKey = apiKey
     }
     
+    public func promptChatGPTStream(prompt: String,
+                                    model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_3_period_5_hyphen_turbo,
+                                    assistantPrompt: String = "You are a helpful assistant",
+                                    prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []) -> AsyncThrowingStream<String, Error> {
+        return AsyncThrowingStream { continuation in
+            Task(priority: .userInitiated) {
+                do {
+                    let response = try await client.createChatCompletion(
+                        body: .json(
+                            .init(
+                                messages: prevMessages,
+                                model: .init(value1: nil, value2: model),
+                                //                    frequency_penalty: <#T##Double?#>,
+                                //                    logit_bias: <#T##Components.Schemas.CreateChatCompletionRequest.logit_biasPayload?#>,
+                                //                    max_tokens: <#T##Int?#>,
+                                //                    n: <#T##Int?#>,
+                                //                    presence_penalty: <#T##Double?#>,
+                                //                    response_format: <#T##Components.Schemas.CreateChatCompletionRequest.response_formatPayload?#>,
+                                //                    seed: <#T##Int?#>,
+                                //                    stop: <#T##Components.Schemas.CreateChatCompletionRequest.stopPayload?#>,
+                                stream: true
+                                //                    temperature: <#T##Double?#>,
+                                //                    top_p: <#T##Double?#>,
+                                //                    tools: <#T##[Components.Schemas.ChatCompletionTool]?#>,
+                                //                    tool_choice: <#T##Components.Schemas.ChatCompletionToolChoiceOption?#>,
+                                //                    user: <#T##String?#>,
+                                //                    function_call: <#T##Components.Schemas.CreateChatCompletionRequest.function_callPayload?#>,
+                                //                    functions: <#T##[Components.Schemas.ChatCompletionFunctions]?#>
+                            )
+                        )
+                    )
+                    
+                    switch response {
+                        case .ok(let body):
+                            let json = try body.body.json
+                            print(json)
+                            guard let content = json.choices.first?.message else {
+                                return continuation.finish(throwing:  "No Response")
+                            }
+                            continuation.yield("text ")
+                        case .undocumented(let statusCode, let payload):
+                            continuation.finish(throwing:  "OpenAIClientError - statuscode: \(statusCode), \(payload)")
+                            //                    throw "OpenAIClientError - statuscode: \(statusCode), \(payload)"
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing:  error)
+
+                }
+            }
+        }
+    }
     
     public func promptChatGPT(
         prompt: String,

@@ -6134,6 +6134,12 @@ components:
         - model
         - messages
 
+    CreateChatCompletionResponseAny:
+        oneOf:
+            - $ref: "#/components/schemas/CreateChatCompletionResponse"
+            - $ref: "#/components/schemas/CreateChatCompletionStreamResponse"
+
+
     CreateChatCompletionResponse:
       type: object
       description: Represents a chat completion response returned by model, based on the provided input.
