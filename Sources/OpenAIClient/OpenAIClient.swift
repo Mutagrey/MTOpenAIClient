@@ -19,7 +19,7 @@ public struct OpenAIClient {
     public func promptChatGPTStream(prompt: String,
                                     model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_3_period_5_hyphen_turbo,
                                     assistantPrompt: String = "You are a helpful assistant",
-                                    prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []) -> AsyncThrowingStream<String, Error> {
+                                    prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []) -> AsyncThrowingStream<Components.Schemas.CreateChatCompletionResponse, Error> {
         return AsyncThrowingStream { continuation in
             Task(priority: .userInitiated) {
                 do {
@@ -49,16 +49,13 @@ public struct OpenAIClient {
                     )
                     
                     switch response {
-                        case .ok(let body):
-                            let json = try body.body.json
-                            print(json)
-                            guard let content = json.choices.first?.message else {
-                                return continuation.finish(throwing:  "No Response")
+                        case .ok(let okResponse):
+                            switch okResponse.body {
+                                case .json(let completionResponse):
+                                    continuation.yield(completionResponse)
                             }
-                            continuation.yield("text ")
                         case .undocumented(let statusCode, let payload):
                             continuation.finish(throwing:  "OpenAIClientError - statuscode: \(statusCode), \(payload)")
-                            //                    throw "OpenAIClientError - statuscode: \(statusCode), \(payload)"
                     }
                     continuation.finish()
                 } catch {
@@ -71,9 +68,10 @@ public struct OpenAIClient {
     
     public func promptChatGPT(
         prompt: String,
-        model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_4,
+        model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_3_period_5_hyphen_turbo,
         assistantPrompt: String = "You are a helpful assistant",
-        prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []) async throws -> String {
+        prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []
+    ) async throws -> Components.Schemas.CreateChatCompletionResponse {
         let response = try await client.createChatCompletion(body: .json(.init(
             messages: [.ChatCompletionRequestAssistantMessage(.init(content: assistantPrompt, role: .assistant))]
             + prevMessages
@@ -81,14 +79,13 @@ public struct OpenAIClient {
             model: .init(value1: nil, value2: model))))
         
         switch response {
-        case .ok(let body):
-            let json = try body.body.json
-            guard let content = json.choices.first?.message.content else {
-                throw "No Response"
-            }
-            return content
-        case .undocumented(let statusCode, let payload):
-            throw "OpenAIClientError - statuscode: \(statusCode), \(payload)"
+            case .ok(let okResponse):
+                switch okResponse.body {
+                    case .json(let completionResponse):
+                        return completionResponse
+                }
+            case .undocumented(let statusCode, let payload):
+                throw "OpenAIClientError - statuscode: \(statusCode), \(payload)"
         }
         
     }
