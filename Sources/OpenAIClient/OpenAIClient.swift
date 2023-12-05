@@ -19,7 +19,7 @@ public struct OpenAIClient {
     public func promptChatGPTStream(prompt: String,
                                     model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_3_period_5_hyphen_turbo,
                                     assistantPrompt: String = "You are a helpful assistant",
-                                    prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []) -> AsyncThrowingStream<Components.Schemas.CreateChatCompletionResponse, Error> {
+                                    prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []) -> AsyncThrowingStream<Components.Schemas.CreateChatCompletionStreamResponse, Error> {
         return AsyncThrowingStream { continuation in
             Task(priority: .userInitiated) {
                 do {
@@ -52,12 +52,16 @@ public struct OpenAIClient {
                         case .ok(let okResponse):
                             switch okResponse.body {
                                 case .json(let completionResponse):
-                                    continuation.yield(completionResponse)
+                                    switch completionResponse {
+                                        case .CreateChatCompletionStreamResponse(let streamResponse):
+                                            continuation.yield(streamResponse)
+                                        default:
+                                            continuation.finish(throwing:  "OpenAIClientError - There is No streaming mode!")
+                                    }
                             }
                         case .undocumented(let statusCode, let payload):
                             continuation.finish(throwing:  "OpenAIClientError - statuscode: \(statusCode), \(payload)")
                     }
-                    continuation.finish()
                 } catch {
                     continuation.finish(throwing:  error)
 
@@ -82,7 +86,12 @@ public struct OpenAIClient {
             case .ok(let okResponse):
                 switch okResponse.body {
                     case .json(let completionResponse):
-                        return completionResponse
+                        switch completionResponse {
+                            case .CreateChatCompletionResponse(let response):
+                                return response
+                            default:
+                                throw "OpenAIClientError - Stream Mode is not available!"
+                        }
                 }
             case .undocumented(let statusCode, let payload):
                 throw "OpenAIClientError - statuscode: \(statusCode), \(payload)"
