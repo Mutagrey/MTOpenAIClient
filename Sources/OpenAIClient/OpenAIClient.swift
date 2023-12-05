@@ -16,11 +16,13 @@ public struct OpenAIClient {
         self.apiKey = apiKey
     }
     
-    public func promptChatGPTStream(prompt: String,
-                                    model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_3_period_5_hyphen_turbo,
-                                    assistantPrompt: String = "You are a helpful assistant",
-                                    prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []) -> AsyncThrowingStream<Components.Schemas.CreateChatCompletionStreamResponse, Error> {
-        return AsyncThrowingStream { continuation in
+    public func promptChatGPTStream(
+        prompt: String,
+        model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_3_period_5_hyphen_turbo,
+        assistantPrompt: String = "You are a helpful assistant",
+        prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []
+    ) -> AsyncThrowingStream<Components.Schemas.CreateChatCompletionStreamResponse, Error> {
+        AsyncThrowingStream { continuation in
             Task(priority: .userInitiated) {
                 do {
                     let response = try await client.createChatCompletion(
@@ -64,7 +66,7 @@ public struct OpenAIClient {
                     }
                 } catch {
                     continuation.finish(throwing:  error)
-
+                    
                 }
             }
         }
@@ -76,6 +78,7 @@ public struct OpenAIClient {
         assistantPrompt: String = "You are a helpful assistant",
         prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []
     ) async throws -> Components.Schemas.CreateChatCompletionResponse {
+        print(model)
         let response = try await client.createChatCompletion(body: .json(.init(
             messages: [.ChatCompletionRequestAssistantMessage(.init(content: assistantPrompt, role: .assistant))]
             + prevMessages
