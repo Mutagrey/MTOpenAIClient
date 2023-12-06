@@ -2,6 +2,13 @@ import Foundation
 import OpenAPIRuntime
 import OpenAPIURLSession
 
+extension Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload: CaseIterable {
+    public static var allCases: [Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload] = [
+        .gpt_hyphen_3_period_5_hyphen_turbo,
+        .gpt_hyphen_3_period_5_hyphen_turbo_hyphen_0301
+    ]
+}
+
 public struct OpenAIClient {
     
     public let client: Client
@@ -16,39 +23,59 @@ public struct OpenAIClient {
         self.apiKey = apiKey
     }
     
-    public func promptChatGPTStream(
+    public func createChatCompletionRequest(
         prompt: String,
         model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_3_period_5_hyphen_turbo,
-        assistantPrompt: String = "You are a helpful assistant",
-        prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []
+        systemPrompt: String = "You are a helpful assistant",
+        prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = [],
+        frequency_penalty: Double?,
+        logit_bias: Components.Schemas.CreateChatCompletionRequest.logit_biasPayload?,
+        max_tokens: Int?,
+        n: Int?,
+        presence_penalty: Double?,
+        response_format: Components.Schemas.CreateChatCompletionRequest.response_formatPayload?,
+        seed: Int?,
+        stop: Components.Schemas.CreateChatCompletionRequest.stopPayload?,
+        stream: Bool?,
+        temperature: Double?,
+        top_p: Double?,
+        tools: [Components.Schemas.ChatCompletionTool]?,
+        tool_choice: Components.Schemas.ChatCompletionToolChoiceOption?,
+        user: String?
+    ) -> Components.Schemas.CreateChatCompletionRequest {
+        .init(
+            messages: [.ChatCompletionRequestSystemMessage(.init(content: systemPrompt, role: .system))]
+            + prevMessages
+            + [.ChatCompletionRequestUserMessage(.init(content: .case1(prompt), role: .user))],
+            model: .init(value1: nil, value2: model),
+            frequency_penalty: frequency_penalty,
+            logit_bias: logit_bias,
+            max_tokens: max_tokens,
+            n: n,
+            presence_penalty: presence_penalty,
+            response_format: response_format,
+            seed: seed,
+            stop: stop,
+            stream: stream,
+            temperature: temperature,
+            top_p: top_p,
+            tools: tools,
+            tool_choice: tool_choice,
+            user: user
+        )
+    }
+    
+    public func promptChatGPTStream(
+        chatCompletionRequest: Components.Schemas.CreateChatCompletionRequest
     ) -> AsyncThrowingStream<Components.Schemas.CreateChatCompletionStreamResponse, Error> {
         AsyncThrowingStream { continuation in
             Task(priority: .userInitiated) {
                 do {
-                    let response = try await client.createChatCompletion(
-                        body: .json(
-                            .init(
-                                messages: prevMessages,
-                                model: .init(value1: nil, value2: model),
-                                //                    frequency_penalty: <#T##Double?#>,
-                                //                    logit_bias: <#T##Components.Schemas.CreateChatCompletionRequest.logit_biasPayload?#>,
-                                //                    max_tokens: <#T##Int?#>,
-                                //                    n: <#T##Int?#>,
-                                //                    presence_penalty: <#T##Double?#>,
-                                //                    response_format: <#T##Components.Schemas.CreateChatCompletionRequest.response_formatPayload?#>,
-                                //                    seed: <#T##Int?#>,
-                                //                    stop: <#T##Components.Schemas.CreateChatCompletionRequest.stopPayload?#>,
-                                stream: true
-                                //                    temperature: <#T##Double?#>,
-                                //                    top_p: <#T##Double?#>,
-                                //                    tools: <#T##[Components.Schemas.ChatCompletionTool]?#>,
-                                //                    tool_choice: <#T##Components.Schemas.ChatCompletionToolChoiceOption?#>,
-                                //                    user: <#T##String?#>,
-                                //                    function_call: <#T##Components.Schemas.CreateChatCompletionRequest.function_callPayload?#>,
-                                //                    functions: <#T##[Components.Schemas.ChatCompletionFunctions]?#>
-                            )
-                        )
-                    )
+                    var checkedRequest = chatCompletionRequest
+                    // make sure stream mode activated
+                    checkedRequest.stream = true
+                    // create response
+                    let response = try await client.createChatCompletion(body: .json(checkedRequest))
                     
                     switch response {
                         case .ok(let okResponse):
@@ -73,17 +100,13 @@ public struct OpenAIClient {
     }
     
     public func promptChatGPT(
-        prompt: String,
-        model: Components.Schemas.CreateChatCompletionRequest.modelPayload.Value2Payload = .gpt_hyphen_3_period_5_hyphen_turbo,
-        assistantPrompt: String = "You are a helpful assistant",
-        prevMessages: [Components.Schemas.ChatCompletionRequestMessage] = []
+        chatCompletionRequest: Components.Schemas.CreateChatCompletionRequest
     ) async throws -> Components.Schemas.CreateChatCompletionResponse {
-        print(model)
-        let response = try await client.createChatCompletion(body: .json(.init(
-            messages: [.ChatCompletionRequestAssistantMessage(.init(content: assistantPrompt, role: .assistant))]
-            + prevMessages
-            + [.ChatCompletionRequestUserMessage(.init(content: .case1(prompt), role: .user))],
-            model: .init(value1: nil, value2: model))))
+        var checkedRequest = chatCompletionRequest
+        // make sure stream mode deactivated
+        checkedRequest.stream = false
+        // create response
+        let response = try await client.createChatCompletion(body: .json(checkedRequest))
         
         switch response {
             case .ok(let okResponse):
